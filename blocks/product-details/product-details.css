@@ -31,6 +31,11 @@
   margin-top: var(--spacing-medium);
 }
 
+.product-details__price .pdp-price,
+.product-details__price .pdp-price-range {
+  font-size: 1.5rem;
+}
+
 .product-details__gallery .pdp-carousel {
   max-height: 60vh;
 }

@@ -1,0 +1,67 @@
+---
+description: Project context for AEM Edge Delivery Storefront with Adobe Commerce Cloud Service
+alwaysApply: true
+---
+
+# AEM Edge Delivery Storefront + Adobe Commerce Cloud Service
+
+This repo is an **AEM Edge Delivery Services (EDS)** storefront with **AEM Authoring (Crosswalk)** and **Adobe Commerce Cloud Service (ACCS)**. Store brand: **CitiSignal**.
+
+## Architecture
+
+- **Content**: Markup from AEM Author (`fstab.yaml`); pages use `.html` suffix. Folder mapping: `/products/` → `/products/default`.
+- **Config**: `config.json` holds `commerce-endpoint` (GraphQL), Store headers (`Magento-Store-Code`, etc.), `commerce-assets-enabled`, and analytics. Runtime config lives at `/.helix/config.json` (see `paths.json`).
+- **Commerce**: All commerce APIs go through the GraphQL endpoint in config. Use `@dropins/tools` for `getConfigValue`, `setEndpoint`, `getHeaders`, and the event bus (`events`). Multiple config keys (e.g. per locale) support multistore.
+
+## Multistore
+
+- **Config per store**: Each store/locale is a key in config (e.g. `public.default`); each defines commerce-endpoint, Store headers, and analytics.
+- **Store switcher**: Footer loads a **store-switcher** fragment at `/store-switcher` (bullet list: display name + link per store). Use `#nolocal` on store-switcher links so they stay absolute and are not rewritten by localization.
+- **Link rewriting**: Links are localized by root; add hash `#nolocal` to cross-store or non-localized links (e.g. store switcher) to opt out.
+
+## Key Directories
+
+| Path | Purpose |
+|------|---------|
+| `blocks/` | EDS blocks: `commerce-*` (cart, checkout, wishlist, account, etc.), `product-details`, `product-list-page`, `product-recommendations`, `header`, `footer`, `form`, etc. |
+| `scripts/` | `commerce.js` (paths, placeholders, helpers), `aem.js` (RUM, metadata), `initializers/` (auth, cart, pdp, wishlist, etc.), `__dropins__/` (copied from npm). |
+| `styles/` | Global CSS (`styles.css`, `lazy-styles.css`, `fonts.css`). |
+| `tools/` | Sidekick config, `pdp-metadata` (Catalog Service → metadata.xlsx / metadata.json for bulk metadata). |
+
+## Block Pattern
+
+- Each block: `blocks/<name>/<name>.js`, `<name>.css`, optional `_<name>.json` and README.
+- Entry: `export default async function decorate(block)`. Use `readBlockConfig(block)` from `scripts/aem.js` for block table config.
+- Commerce blocks use **Drop-in** containers and APIs from `@dropins/storefront-*` (e.g. `@dropins/storefront-cart`, `@dropins/storefront-pdp`). Import from `scripts/commerce.js` for `fetchPlaceholders`, `rootLink`, `getProductLink`, etc.
+
+## Drop-ins
+
+- **npm**: `@dropins/tools`, `storefront-auth`, `storefront-cart`, `storefront-checkout`, `storefront-pdp`, `storefront-wishlist`, `storefront-order`, `storefront-product-discovery`, `storefront-recommendations`, etc.
+- After adding/updating a drop-in, run `npm run postinstall` so `scripts/__dropins__` is updated (no automatic postinstall for single-package installs).
+- GraphQL customization: `build.mjs` uses `overrideGQLOperations()` from `@dropins/build-tools/gql-extend.js` (e.g. skip fragments for ACCS like downloadable items).
+
+## PDP & Metadata
+
+- Product Detail Pages: Prefer real EDS pages. Use **AEM Commerce Prerender** and BYOM overlay for PDPs from Catalog Service.
+- `tools/pdp-metadata`: Fetches from Catalog Service and produces `metadata.xlsx` and `metadata.json` for Edge Delivery bulk metadata (SEO, social, JSON-LD).
+
+## Conventions
+
+- **Imports**: Prefer `@dropins/*` for storefront features; use `scripts/commerce.js` and `scripts/aem.js` for project-specific helpers and config.
+- **Events**: Use `events` from `@dropins/tools/event-bus.js` (e.g. `authenticated`, `cart/data`, `pdp/data`, `aem/lcp`).
+- **Auth**: Token in cookie `auth_dropin_user_token`; initializers set GraphQL auth headers via event bus.
+- **Placeholders**: JSON under `placeholders/` (e.g. `cart.json`, `checkout.json`, `pdp.json`, `global.json`). Use `fetchPlaceholders('placeholders/<name>.json')`; can be per store view for multistore.
+- **3rd party scripts**: Do not add 3rd party libraries in `head.html`. Use `loadScript()` from `scripts/aem.js` in the block that needs them; for heavier libs load when the block is in view (e.g. IntersectionObserver).
+- **JavaScript**: Use features supported by browsers that support dynamic `import()`; avoid unsupported syntax that can break the page (e.g. optional chaining where not supported).
+- **SEO**: Use metadata block/sheet for pages; aim for good Core Web Vitals; use alt text and descriptive URLs. For PDPs use bulk metadata (see PDP & Metadata).
+- **Lint**: `npm run lint` (ESLint + Stylelint). Use existing patterns in blocks and scripts when adding code.
+
+## Docs
+
+- [Storefront Developer Tutorial](https://experienceleague.adobe.com/developer/commerce/storefront/get-started/)
+- [AEM Docs](https://www.aem.live/docs/) and [Developer Tutorial](https://www.aem.live/developer/ue-tutorial)
+- [The Anatomy of an AEM Project](https://www.aem.live/developer/anatomy-of-a-project)
+- [Web Performance](https://www.aem.live/developer/keeping-it-100)
+- [Markup, Sections, Blocks](https://www.aem.live/developer/markup-sections-blocks)
+- [Folder mapping](https://www.aem.live/developer/folder-mapping) (deprecated; physical PDPs preferred; BYOM overlay)
+- [AEM Commerce Prerender](https://github.com/adobe-rnd/aem-commerce-prerender)
