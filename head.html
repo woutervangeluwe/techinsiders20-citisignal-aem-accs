@@ -69,7 +69,6 @@
         prehidingStyle: ".personalization-container { opacity: 0 !important }",
     });
 
-<script nonce="aem" src="/scripts/styleconfigurations.js"></script>
   
 window["alloy"]("sendEvent", {
     conversation: {
@@ -84,7 +83,10 @@ window["alloy"]("sendEvent", {
         stickySession: true // create a sticky session cookie with expiration
     })
 });
+  
 </script>
+
+<script nonce="aem" src="/scripts/styleconfigurations.js"></script>
 
 <script nonce="aem" src="/scripts/aem.js" type="module"></script>
 <script nonce="aem" src="/scripts/scripts.js" type="module"></script>
